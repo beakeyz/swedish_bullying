@@ -4,14 +4,14 @@ from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol
 
-import conn
+from .conn import ServerConnection
 
 class ServerConnFactory(Factory):
     def __init__(self, server) -> None:
         self.server = server
 
     def buildProtocol(self, addr: IAddress) -> Protocol | None:
-        return conn.ServerConnection(self, self.server.cm)
+        return ServerConnection(self, self.server.cm)
 
 class Server(object):
     def __init__(self, port, cm) -> None:

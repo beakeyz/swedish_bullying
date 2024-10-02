@@ -1,18 +1,18 @@
 PY=python3
 PIP=pip
 SRC_DIR=src
-SERVER_SRC=$(SRC_DIR)/server
-CLIENT_SRC=$(SRC_DIR)/client
+SERVER_MOD=$(SRC_DIR).server
+CLIENT_MOD=$(SRC_DIR).client
 
 DEPS=			\
 	twisted 	\
 	colorama 	\
 
 server:
-	$(PY) $(SERVER_SRC)/main.py
+	$(PY) -m $(SERVER_MOD).main
 
 client:
-	$(PY) $(CLIENT_SRC)/main.py
+	$(PY) -m $(CLIENT_MOD).main
 
 $(DEPS):
 	$(PIP) install $@

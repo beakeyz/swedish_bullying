@@ -1,16 +1,21 @@
-import srv as s
-import connectManager
-import debug.log as log
+from .srv import Server
+from .connectManager import ConnectionManager
+from .debug.log import EnableDebug
 
 # Execution starts here
 def main():
     print("Server started!")
     
-    log.EnableDebug()
+    # Enable/Disable debug messages
+    EnableDebug()
 
-    cm = connectManager.ConnectionManager()
-    s.Server(8007, cm)
+    # Create a connection manager for this server
+    cm = ConnectionManager()
     
+    # Actually create the server
+    Server(8007, cm)
+    
+    # Die
     pass
 
 if __name__ == "__main__":

@@ -1,14 +1,20 @@
 # Import the game components
-from game import Game
-from player import Player
+#from game import Game
+#from player import Player
+
+from .net.network import NetworkClient
 
 def main() -> None:
-    g = Game()
+    #g = Game()
 
-    g.addPlayer(Player("You"))
-    g.addPlayer(Player("Bot"))
+    #g.addPlayer(Player("You"))
+    #g.addPlayer(Player("Bot"))
 
-    g.start()
+    #g.start()
+    
+    client = NetworkClient()
+    
+    client.connect("localhost", 8007)
 
     pass
 

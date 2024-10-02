@@ -1,8 +1,8 @@
 from twisted.protocols.socks import SOCKSv4
 from twisted.python.failure import Failure
 
-import connectManager
-from debug.log import DebugLog
+from .connectManager import ConnectionManager
+from .debug.log import DebugLog
 
 # This server implements the twisted internet protocol
 # 
@@ -13,7 +13,7 @@ from debug.log import DebugLog
 # on to the connection manager. It will then in turn handle further connection states and stuff
 class ServerConnection(SOCKSv4):
     connId: int
-    cm: connectManager.ConnectionManager
+    cm: ConnectionManager
 
     def __init__(self, factory, cm) -> None:
         self.factory = factory

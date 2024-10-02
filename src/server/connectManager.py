@@ -1,11 +1,21 @@
 from twisted.protocols.socks import SOCKSv4
 
+from ..shared import net
+from .debug.log import DebugLog
+
+# Connection object that is actually used to store connection information
+# 
 class InternalServerConnection(object):
     connection: SOCKSv4
     connId: int
 
-    def __init__(self, proto) -> None:
+    def __init__(self, proto, id) -> None:
         self.connection = proto
+        self.connId = id
+        
+    # Called when this connection is closed
+    def destroy(self) -> None:
+        pass
 
 # Management Class which is responsible for managaging every single connections
 # state
@@ -15,19 +25,52 @@ class ConnectionManager(object):
     
     def __init__(self) -> None:
         self.nextConnId = 0
+        
+    def __newConnectionId(self) -> int:
+        next: int = self.nextConnId
+        
+        # Add one to the next id we want to grab
+        self.nextConnId += 1
+        
+        # Return the previous next
+        return next
     
     # Registers a new connection
     #
     # Returns the connection ID of this protocol
     def registerConnection(self, proto: SOCKSv4) -> int:
-        pass
-    
+        id: int = self.__newConnectionId()
+        
+        # Insert the connection object in our dictionary
+        self.connections[id] = InternalServerConnection(proto, id)
+
+        return id
+        
     # Called when a connection breaks
     def unregisterConnection(self, connId: int) -> bool:
-        pass
+        connection: InternalServerConnection
+        
+        try:
+            connection = self.connections.pop(connId)
+        except KeyError:
+            return False
+        
+        if connection != None:
+            connection.destroy()
+        
+        return True
     
     # Called when we recieve data from a certain connection
     def onDataRecieve(self, connId: int, data: bytes) -> None:
+        netPacket: net.packet.NetPacket = net.packet.NetPacket(data=data)
+        
+        # This would mean invalid packet =(
+        # TODO: Send error packet?
+        if netPacket.type == net.packet.NetPacketType.INVAL:
+            return
+        
+        DebugLog(f"Recieved data: {data}")
+        DebugLog(f"Packet type: {netPacket.type}")
         pass
     
     # Called when the server wants to send some data back to the client
@@ -48,3 +91,10 @@ class ConnectionManager(object):
         # Write over the connection
         connection.connection.write(data)
         return 0
+    
+    def SendPacket(self, connId: int, packet: net.packet.NetPacket) -> int:
+        # Marshal the packet into a datastream
+        data: bytes = bytes(packet.marshal())
+        
+        # Beam the steam over the connection
+        return self.SendData(connId, data)
