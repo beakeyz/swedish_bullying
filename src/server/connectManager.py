@@ -2,6 +2,7 @@ from twisted.protocols.socks import SOCKSv4
 
 from ..shared import net
 from .debug.log import DebugLog
+from .packets import PacketManager
 
 # Connection object that is actually used to store connection information
 # 
@@ -20,11 +21,13 @@ class InternalServerConnection(object):
 # Management Class which is responsible for managaging every single connections
 # state
 class ConnectionManager(object):
+    packetManager: PacketManager
     connections: dict[int, InternalServerConnection] = {}
     nextConnId: int
     
-    def __init__(self) -> None:
+    def __init__(self, packetManager) -> None:
         self.nextConnId = 0
+        self.packetManager = packetManager
         
     def __newConnectionId(self) -> int:
         next: int = self.nextConnId
@@ -71,6 +74,10 @@ class ConnectionManager(object):
         
         DebugLog(f"Recieved data: {data}")
         DebugLog(f"Packet type: {netPacket.type}")
+        
+        # Let the packet manager handle this packet
+        self.packetManager.HandlePacket(connId, self, netPacket)
+        
         pass
     
     # Called when the server wants to send some data back to the client

@@ -64,6 +64,10 @@ class NetPacketType(enum.Enum):
     #   2: Next player ID (1 byte) : Indicates which player is currently in turn
     NOTIFY_PLAY_CARD = 9
     
+    # (Outgoing) Sent by the client if it had to reject a packet from the server.
+    # Server should simply resend in most cases
+    PACKET_REJECTED = 255
+    
     def __int__(self) -> int:
         return self.value
     
@@ -90,17 +94,32 @@ class NetPacket(object):
         self.version = version
         # Store the raw data inside the packet
         self.rawData = data
-        
-        if data is None or len(data) < 4:
-            return
-        
-        # Parse the default data from the first 4 bytes
-        self.type = NetPacketType(data[0])
-        self.flags = NetPacketType(data[1])
-        self.version = NetPacketType((data[2] << 8) | data[3])
-        
+
+        self.unmarshal(data)
+                    
     def hasFlags(self, flags: int) -> bool:
         return (self.flags & flags) == flags
+            
+    def fromPacket(self, netPacket):
+        if not netPacket:
+            return
+        
+        self.unmarshal(netPacket.rawData)
+        
+        return self
+    
+    def unmarshal(self, data: bytes):
+        if data == None or len(data) < 4:
+            return
+        
+         # Try to parse the things xD
+        try:
+            # Parse the default data from the first 4 bytes
+            self.type = NetPacketType(data[0])
+            self.flags = int(data[1])
+            self.version = int((data[2] << 8) | data[3])
+        except ValueError:
+            pass
     
     # Base function to marshal a network packet into a datastream
     def marshal(self) -> bytearray:

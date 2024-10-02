@@ -27,11 +27,6 @@ class ServerConnection(SOCKSv4):
         
         # Propegate the call to the connection manager
         self.cm.onDataRecieve(self.connId, data)
-        
-        # Write back the data as a test
-        self.write(data)
-        
-        return super().dataReceived(data)
     
     def write(self, data):
         DebugLog(f"ServerConnection->write(self, data={data}) called!")
@@ -40,9 +35,6 @@ class ServerConnection(SOCKSv4):
         self.cm.onDataSend(self.connId, data)
         
         return super().write(data)
-    
-    def makeReply(self, reply, version=0, port=0, ip="0.0.0.0"):
-        return super().makeReply(reply, version, port, ip)
     
     def connectionMade(self):
         DebugLog("Hey, someone connected to our server!")
