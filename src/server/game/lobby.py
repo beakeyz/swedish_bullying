@@ -1,10 +1,10 @@
 from . import player
 
 from ..debug.log import DebugLog
-from ..connectManager import ConnectionManager
 
 from ...shared.net.packet import NetPacket, NetPacketType
 from ...shared.net.packets.joinpacket import JoinNetPacket
+from ...shared.net.netif import NetworkInterface
 
 
 class Lobby(object):
@@ -92,7 +92,7 @@ class LobbyManager(object):
     def GetLobby(self, lobbyId: int) -> Lobby:
         return self.lobbies.get(lobbyId)
     
-    def HandleIncommingPacket(self, connId: int, cm: ConnectionManager, netPacket: NetPacket) -> bool:
+    def HandleIncommingPacket(self, connId: int, cm: NetworkInterface, netPacket: NetPacket) -> bool:
         '''
         Parse the packet to figure out which lobby this packet is meant for
         '''

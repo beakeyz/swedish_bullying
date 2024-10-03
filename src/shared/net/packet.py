@@ -63,6 +63,15 @@ class NetPacketType(enum.Enum):
     #   1: Player ID (1 byte)
     #   2: Next player ID (1 byte) : Indicates which player is currently in turn
     NOTIFY_PLAY_CARD = 9
+    # (Outgoing/Incomming) Client sends this when it wants to know what lobbies there are
+    # Packet flags: NETPACKET_FLAG_EXPECT_RESP
+    # (Outgoing) Parameters:
+    #   0: lobbycount (2 bytes)
+    #
+    # (Incomming) Parameters:
+    #   0: Lobbycount (2 bytes)
+    #   1 -> Lobbycount-1: Lobby IDs (2 * lobbycount bytes)
+    LIST_LOBBIES = 10
     
     # (Outgoing) Sent by the client if it had to reject a packet from the server.
     # Server should simply resend in most cases

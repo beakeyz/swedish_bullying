@@ -20,7 +20,7 @@ class InternalServerConnection(object):
 
 # Management Class which is responsible for managaging every single connections
 # state
-class ConnectionManager(object):
+class ConnectionManager(net.NetworkInterface):
     packetManager: PacketManager
     connections: dict[int, InternalServerConnection] = {}
     nextConnId: int
