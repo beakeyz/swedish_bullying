@@ -1,4 +1,4 @@
-from card import Card
+from ..shared.game import Card
 
 class Player(object):
     name: str

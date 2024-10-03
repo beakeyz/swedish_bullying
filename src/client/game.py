@@ -1,8 +1,8 @@
 import re
 
-from card import Card, CardType
-from player import Player
-from pile import Pile
+from ..shared.game.card import Card, CardType
+from .player import Player
+from .pile import Pile
 
 class Game(object):
     discardPile: Pile

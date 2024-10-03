@@ -1,7 +1,7 @@
 import random
 
-from card import Card
-from player import Player
+from ..shared.game.card import Card
+from .player import Player
 
 class Pile(object):
     cards: list[Card] = []

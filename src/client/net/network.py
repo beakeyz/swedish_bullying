@@ -27,6 +27,9 @@ class NetworkProtocol(SOCKSv4):
     
     def connectionLost(self, reason):
         print("NetworkProtocol: connectionLost")
+        
+        self.netif.disconnect(0)
+        
         return super().connectionLost(reason)
     
     def dataReceived(self, data: bytes) -> None:
@@ -37,8 +40,10 @@ class NetworkProtocol(SOCKSv4):
         if netPacket.type == NetPacketType.INVAL:
             return
         
+        if netPacket.isNotifyPacket():
+            self.netif.QueueNotifyPacket(netPacket)
         # Let the server know this packet was rejected if the response queue is blocked...
-        if self.netif.QueueResponsePacket(0, netPacket) < 0:
+        elif self.netif.QueueResponsePacket(0, netPacket) < 0:
             self.netif.SendPacket(0, NetPacket(NetPacketType.PACKET_REJECTED, 0, 1))
         
     
@@ -60,10 +65,11 @@ class NetworkClient(NetworkInterface):
     responsePackets: list[NetPacket] = []
     connectionProtocol: NetworkProtocol = None
     
-    def __init__(self) -> None:
+    def __init__(self, game) -> None:
         self.fact = NetworkClientFact(self)
+        self.game = game
         
-    def connect(self, host: str, port: int, clientThread) -> None:
+    def connect(self, host: str, port: int, clientThread, notifyThread) -> None:
         # Check if we're already connected
         if self.isConnected():
             return
@@ -74,16 +80,18 @@ class NetworkClient(NetworkInterface):
             
             threads.deferToThread(clientThread, self)
             
+            threads.deferToThread(notifyThread, self)
+            
             # Run the connection
             reactor.run()
         except KeyboardInterrupt:
             return
         
-    def disconnect(self) -> bool:
+    def disconnect(self, connId: int) -> int:
         _tmpConn: NetworkProtocol
         
-        if not self.isConnected:
-            return False
+        if not self.isConnected():
+            return -1
         
         # Cache the connection protocol
         _tmpConn = self.GetProtocol()
@@ -91,11 +99,14 @@ class NetworkClient(NetworkInterface):
         # Clear the protocol field first
         self.SetProtocol(None)
         
-        # Lose the connection (Didn't want it anyway)
-        _tmpConn.transport.loseConnection()
+        if _tmpConn:
+            # Lose the connection (Didn't want it anyway)
+            _tmpConn.transport.loseConnection()
         
         # Stop the reactor
         reactor.stop()
+        
+        return 0
         
     def isConnected(self) -> bool:
         return self.GetProtocol() != None

@@ -1,5 +1,5 @@
 # Import the game components
-#from game import Game
+from .game import Game
 #from player import Player
 import time
 
@@ -16,6 +16,7 @@ def clientThread(nc: NetworkClient):
     After we are connected to the server, this function will first act as a navigation tool,
     with which a user is able to connect to lobbies, disconnect from lobbies, play the game, ect.
     '''
+    
     try:
         print(f"Waiting until we've connected to the server...")
         
@@ -33,18 +34,29 @@ def clientThread(nc: NetworkClient):
                 print("Command not recognised (type \'help\' for help)!")
     except KeyboardInterrupt and EOFError:
         return
+    
+def notifyThread(nc: NetworkClient):
+    while not nc.isConnected():
+        time.sleep(0.001)
+        
+    while nc.isConnected():
+        cli.CliPollNotify(nc)
+        
+        # Sleep this thread for 50ms
+        time.sleep(0.05)
+        
 
 def main() -> None:
-    #g = Game()
+    g = Game()
 
     #g.addPlayer(Player("You"))
     #g.addPlayer(Player("Bot"))
 
     #g.start()
     
-    client = NetworkClient()
+    client = NetworkClient(g)
     
-    client.connect("localhost", 8007, clientThread)
+    client.connect("localhost", 8007, clientThread, notifyThread)
 
     pass
 

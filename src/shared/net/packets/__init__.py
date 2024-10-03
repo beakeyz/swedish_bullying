@@ -4,6 +4,5 @@ from .joinpacket import *
 from .leavepacket import *
 from .restartpacket import *
 from .playpacket import *
-from .notifypackets import *
 from .listlobbypacket import *
 from .listplayerspacket import *

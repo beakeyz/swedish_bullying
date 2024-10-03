@@ -10,8 +10,10 @@ class NetPacketType(enum.Enum):
     # (Serverbound) Destroys the current lobby, if the sender is also the creator of the lobby
     # No parameters
     DESTROY_LOBBY = 1
-    # (Serverbound) Starts the current lobby, if the sender is also the creator of the lobby
-    # No parameters
+    # (Serverbound/Clientbound) Starts the current lobby, if the sender is also the creator of the lobby
+    # (Serverbound) Parameters: No parameters
+    # (Clientbound) Parameters:
+    #   0-5: Hand card 0-5 (2*6=12 bytes)
     START_LOBBY = 2
     # (Serverbound) Restarts the current lobby, if the sender is also the creator of the lobby and
     # if the game has ended
@@ -56,9 +58,9 @@ class NetPacketType(enum.Enum):
     # (Clientbound) Server sends this to all clients to notify them that a player has played
     # a card.
     # (Clientbound) Parameters:
-    #   0: Card (1 byte)
-    #    - bits 0-4: card value from 2 to 15, where 11 to 14 are J,Q,H,A and 15 is a joker
-    #    - bits 5-8: card type (Spades, Clubs, Diamonds, Hearts)
+    #   0: Card (2 byte)
+    #    - byte 0: card value from 2 to 15, where 11 to 14 are J,Q,H,A and 15 is a joker
+    #    - byte 1: card type (Spades, Clubs, Diamonds, Hearts)
     #   1: Player ID (1 byte)
     #   2: Next player ID (1 byte) : Indicates which player is currently in turn
     NOTIFY_PLAY_CARD = 9
@@ -71,10 +73,20 @@ class NetPacketType(enum.Enum):
     #   0: Lobbycount (2 bytes)
     #   1 -> Lobbycount-1: Lobby IDs (2 * lobbycount bytes)
     LIST_LOBBIES = 10
+
+    SELECT_OPEN_CARDS = 11
+    # (Clientbound) Sent by the server to indicate that a client needs to take cards into their hand
+    # The cards in the hand of the players are sorted based on value and type value both on the client
+    # and on the server side, such that card indices are synced on both sides
+    # Parameters:
+    #   0: Next player ID (1 byte)
+    #   1 -> X: Card X (2 bytes)
+    TAKE_CARDS = 12
     
     # (Serverbound) Sent by the client if it had to reject a packet from the server.
     # Server should simply resend in most cases
     PACKET_REJECTED = 255
+    
     
     def __int__(self) -> int:
         return self.value
@@ -115,6 +127,13 @@ class NetPacket(object):
     # Is this packet heading to the server
     def isServerBound(self) -> bool:
         return not self.hasFlags(NETPACKET_FLAG_CLIENTBOUND)
+    
+    def isNotifyPacket(self) -> bool:
+        return (
+            self.type == NetPacketType.NOTIFY_JOIN_LOBBY or
+            self.type == NetPacketType.NOTIFY_LEAVE_LOBBY or
+            self.type == NetPacketType.NOTIFY_PLAY_CARD
+        )
             
     def fromPacket(self, netPacket):
         if not netPacket:

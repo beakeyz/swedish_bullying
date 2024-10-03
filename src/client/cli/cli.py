@@ -4,13 +4,15 @@ from ..net.network import NetworkClient
 
 from ...shared.net.packets import *
 
+from ..game import Game
+
 def __cli_help(input: str, argv: list[str], nc): 
     print("Available commands:")
     for c in __cli_commands:
         print(f" - {c}: {__cli_commands[c][1]}")
         
 def __cli_exit(input: str, argv: list[str], nc: NetworkClient):
-    nc.disconnect()
+    nc.disconnect(0)
 
 def __cli_join(input: str, argv: list[str], nc: NetworkClient):
     netResponse: JoinNetPacket = None
@@ -90,6 +92,24 @@ __cli_commands = {
     "start": [__cli_start, "Starts the current lobby if there are enough players"],
 }
 
+def CliPollNotify(nc: NetworkClient):
+    game: Game = nc.game
+    notifyPacket: NetPacket = nc.PollNotifyPacket()
+    
+    if notifyPacket == None:
+        return
+    
+    # Newline
+    print("")
+    
+    if notifyPacket.type == NetPacketType.NOTIFY_JOIN_LOBBY:
+        print(f"Got a join notify packet!")
+        
+        # Unpack the packet to find the data
+        notifyPacket: NotifyJoinPacket = NotifyJoinPacket().fromPacket(notifyPacket)
+        
+        print(f"Player to join: name={notifyPacket.playerName}, id={notifyPacket.playerId}")
+
 def CliStep(input: str, nc: NetworkClient) -> int:
     argv: list[str] = input.split()
     func = None
@@ -102,6 +122,5 @@ def CliStep(input: str, nc: NetworkClient) -> int:
         return 1
     
     func[0](input, argv, nc)
-    
     
     return 0

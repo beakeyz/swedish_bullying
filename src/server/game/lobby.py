@@ -158,6 +158,13 @@ class LobbyManager(object):
                 
                 if playerId < 0:
                     playerId = JoinNetPacket.InvalidPlayerId()
+                else:
+                    # Notify other players of this join event
+                    for playerInLobby in lobby.players:
+                        # Make sure to skip the player that just joined, they obviously dont
+                        # need to be notified that a players has joined ._.
+                        if playerInLobby.connectionId != playerId:
+                            cm.SendPacket(playerInLobby.connectionId, NotifyJoinPacket(joinPacket.playerName, playerId))
             
             # Send the response packet to the client
             cm.SendPacket(connId, JoinNetPacket(incomming=True, playerId=playerId))

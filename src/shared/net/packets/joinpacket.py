@@ -52,3 +52,43 @@ class JoinNetPacket(NetPacket):
                 ret.append(ord(c))
         
         return ret
+    
+# Sent to every connected client in a lobby when a new player joins
+class NotifyJoinPacket(NetPacket):
+    playerName: str
+    playerId: int
+    
+    def __init__(self, playerName: str = None, playerId: int = None) -> None:
+        super().__init__(NetPacketType.NOTIFY_JOIN_LOBBY, NETPACKET_FLAG_CLIENTBOUND, 1, None)
+        
+        self.playerName = playerName
+        self.playerId = playerId
+        
+        
+    def unmarshal(self, data: bytes):
+        if data == None:
+            return
+        
+        super().unmarshal(data)
+        
+        if len(data) < 5:
+            return
+        
+        self.playerId = data[4]
+                
+        self.playerName = ""
+        
+        for i in range(len(data) - 5):
+            self.playerName += chr(data[5 + i])
+    
+    def marshal(self) -> bytearray:
+        # Let NetPacket do the default header
+        ret: bytearray = super().marshal()
+
+        ret.append(self.playerId & 0xff)
+            
+        # Simply append the chars to the stream
+        for c in self.playerName:
+            ret.append(ord(c))
+        
+        return ret
