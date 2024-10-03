@@ -109,6 +109,10 @@ def CliPollNotify(nc: NetworkClient):
         notifyPacket: NotifyJoinPacket = NotifyJoinPacket().fromPacket(notifyPacket)
         
         print(f"Player to join: name={notifyPacket.playerName}, id={notifyPacket.playerId}")
+        
+        # TODO: Actually add the players to the game
+        
+    print("> ", end='')
 
 def CliStep(input: str, nc: NetworkClient) -> int:
     argv: list[str] = input.split()
