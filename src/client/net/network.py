@@ -30,21 +30,17 @@ class NetworkProtocol(SOCKSv4):
         return super().connectionLost(reason)
     
     def dataReceived(self, data: bytes) -> None:
-        print(f"NetworkProtocol: dataReceived {data.decode()}")
-        
         # Grab the netpacket
         netPacket: NetPacket = NetPacket(data=data)
         
         # Invalid data
         if netPacket.type == NetPacketType.INVAL:
-            return super().dataRecieved(data)
+            return
         
         # Let the server know this packet was rejected if the response queue is blocked...
         if self.netif.QueueResponsePacket(0, netPacket) < 0:
             self.netif.SendPacket(0, NetPacket(NetPacketType.PACKET_REJECTED, 0, 1))
-            return super().dataRecieved(data)
         
-        return super().dataReceived(data)
     
     def write(self, data):
         print("NetworkProtocol: write")
@@ -128,9 +124,6 @@ class NetworkClient(NetworkInterface):
     
     def SendPacketAndAwaitResponse(self, netPacket: NetPacket) -> NetPacket | None:
         timeout: int = 5_000
-        
-        if netPacket.hasFlags(NETPACKET_FLAG_EXPECT_RESP) == False:
-            return None
         
         if self.SendPacket(0, netPacket) < 0:
             return None

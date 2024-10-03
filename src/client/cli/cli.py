@@ -2,7 +2,7 @@ import re
 
 from ..net.network import NetworkClient
 
-from ...shared.net.packets.joinpacket import JoinNetPacket
+from ...shared.net.packets import *
 
 def __cli_help(input: str, argv: list[str], nc): 
     print("Available commands:")
@@ -37,17 +37,42 @@ def __cli_join(input: str, argv: list[str], nc: NetworkClient):
     # Transform
     netResponse: JoinNetPacket = JoinNetPacket().fromPacket(response)
     
-    if netResponse.playerId == None:
+    if netResponse.playerId == JoinNetPacket.InvalidPlayerId():
         print("Failed to join that lobby =(")
         return
     
     print(f"Success! Player {argv[2]} joined with ID {netResponse.playerId}")
 
 def __cli_leave(input: str, argv: list[str], nc: NetworkClient):
-    pass
+    nc.SendPacket(0, LeavePacket())
 
 def __cli_create(input: str, argv: list[str], nc: NetworkClient):
-    pass
+    netResponse: CreateLobbyPacket = None
+    lobbyId: int
+    
+    if len(argv) != 2:
+        print("Please supply all the required arguments! (lobbyID)")
+        return
+    
+    try:
+        lobbyId = int(argv[1])
+    except:
+        print("Please supply a valid lobby ID")
+        return
+    
+    response = nc.SendPacketAndAwaitResponse(CreateLobbyPacket(lobbyId=lobbyId))
+    
+    if response == None:
+        print(f"Failed to create a lobby with lobby ID {lobbyId}!")
+        return
+    
+    netResponse = CreateLobbyPacket().fromPacket(response)
+    
+    if netResponse == None or netResponse.lobbyId == CreateLobbyPacket.InvalidLobbyId():
+        print(f"Failed to create lobby with ID {lobbyId}")
+        return
+    
+    print(f"Succesfuly created lobby {lobbyId}")
 
 def __cli_destroy(input: str, argv: list[str], nc: NetworkClient):
     pass

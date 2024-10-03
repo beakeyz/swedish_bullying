@@ -1,4 +1,4 @@
-from ..packet import NetPacket, NetPacketType, NETPACKET_FLAG_INCOMMING, NETPACKET_FLAG_EXPECT_RESP
+from ..packet import NetPacket, NetPacketType, NETPACKET_FLAG_CLIENTBOUND, NETPACKET_FLAG_EXPECT_RESP
 
 class JoinNetPacket(NetPacket):
     lobbyId: int
@@ -6,11 +6,17 @@ class JoinNetPacket(NetPacket):
     playerName: str
 
     def __init__(self, incomming=False, lobbyId=None, playerId=None, playerName=None, data=None) -> None:
-        super().__init__(type=NetPacketType.JOIN_LOBBY, flags=(NETPACKET_FLAG_INCOMMING if incomming else 0) | NETPACKET_FLAG_EXPECT_RESP, version=1, data=data)
+        super().__init__(type=NetPacketType.JOIN_LOBBY, flags=(NETPACKET_FLAG_CLIENTBOUND if incomming else 0) | NETPACKET_FLAG_EXPECT_RESP, version=1, data=data)
         
         self.lobbyId = lobbyId
         self.playerId = playerId
         self.playerName = playerName
+        
+    def InvalidPlayerId() -> int:
+        return 0xff
+        
+    def isValidPlayerId(self) -> bool:
+        return self.playerId and self.playerId < 0xff
         
     def unmarshal(self, data: bytes):
         if data == None:
@@ -18,7 +24,7 @@ class JoinNetPacket(NetPacket):
         
         super().unmarshal(data)
         
-        if self.hasFlags(NETPACKET_FLAG_INCOMMING):
+        if self.hasFlags(NETPACKET_FLAG_CLIENTBOUND):
             if len(data) == 5:
                 self.playerId = data[4]
         else:
@@ -35,7 +41,7 @@ class JoinNetPacket(NetPacket):
         # Let NetPacket do the default header
         ret: bytearray = super().marshal()
 
-        if self.hasFlags(NETPACKET_FLAG_INCOMMING):
+        if self.hasFlags(NETPACKET_FLAG_CLIENTBOUND):
             ret.append(self.playerId & 0xff)
         else:
             ret.append((self.lobbyId >> 8) & 0xff)

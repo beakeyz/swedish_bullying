@@ -58,9 +58,14 @@ class ConnectionManager(net.NetworkInterface):
         except KeyError:
             return False
         
+        # Synthesise a leave packet here
+        leavePacket: net.LeavePacket = net.LeavePacket()
+        
+        self.packetManager.HandlePacket(connId, self, leavePacket)
+        
         if connection != None:
             connection.destroy()
-        
+                    
         return True
     
     # Called when we recieve data from a certain connection

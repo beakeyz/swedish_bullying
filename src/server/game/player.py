@@ -1,3 +1,4 @@
+from ...shared.net.packets import *
 
 class Player(object):
     name: str
@@ -6,11 +7,11 @@ class Player(object):
     
     def __init__(self, name, connectionId) -> None:
         self.name = name
-        self.id = -1
+        self.id = JoinNetPacket.InvalidPlayerId()
         self.connectionId = connectionId
         
     def SetPlayerId(self, id: int) -> bool:
-        if id >=  0:
+        if self.id != JoinNetPacket.InvalidPlayerId():
             return False
         
         self.id = id
@@ -18,4 +19,4 @@ class Player(object):
         return True
     
     def ResetPlayerId(self):
-        self.id = -1
+        self.id = JoinNetPacket.InvalidPlayerId()
