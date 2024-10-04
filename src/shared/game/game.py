@@ -1,17 +1,21 @@
 import re
 
-from ..shared.game.card import Card, CardType
-from .player import Player
+from .card import Card, CardType
+from .player import GamePlayer
 from .pile import Pile
+
+from ..net.packets import *
 
 class Game(object):
     discardPile: Pile
     drawPile: Pile
     boomPile: Pile
 
-    shouldCyclePlayer: bool
+    shouldCycleGamePlayer: bool
     started: bool
-    players: list[Player] = []
+    gamePlayers: list[GamePlayer] = []
+    
+    currentLobbyId: int
 
     def __generateCards(self) -> Pile:
         cards: list[Card] = []
@@ -33,30 +37,34 @@ class Game(object):
         self.discardPile = Pile([])
         self.boomPile = Pile([])
         self.started = False
+        self.currentLobbyId = CreateLobbyPacket.InvalidLobbyId()
+        
+    def SetLobbyId(self, lobbyId: int) -> int:
+        self.currentLobbyId = lobbyId
 
-    def addPlayer(self, p: Player) -> bool:
-        if p in self.players or self.started:
+    def addGamePlayer(self, p: GamePlayer) -> bool:
+        if p in self.gamePlayers or self.started:
             return False
         
-        self.players.append(p)
+        self.gamePlayers.append(p)
 
     def dealCards(self) -> None:
-        for player in self.players:
-            # Let the players take 3 open, 3 closed and 3 hand cards
+        for GamePlayer in self.gamePlayers:
+            # Let the GamePlayers take 3 open, 3 closed and 3 hand cards
             for i in range(3):
-                self.drawPile.takeClosedCard(player)
-                self.drawPile.takeOpenCard(player)
-                self.drawPile.takeCard(player)
+                self.drawPile.takeClosedCard(GamePlayer)
+                self.drawPile.takeOpenCard(GamePlayer)
+                self.drawPile.takeCard(GamePlayer)
 
     def doBoom(self) -> bool:
 
         # Move the discard pile to the boom pile
         self.boomPile.mergePiles(self.discardPile)
 
-        self.shouldCyclePlayer = False
+        self.shouldCycleGamePlayer = False
         return True
 
-    def playCard(self, p: Player, indices: list[int]) -> bool:
+    def playCard(self, p: GamePlayer, indices: list[int]) -> bool:
         if not self.discardPile.playCards(p, indices):
             return False
         
@@ -75,9 +83,9 @@ class Game(object):
 
         return self.doBoom()
  
-    # Checks the hand of a current player in the game to see if they 
+    # Checks the hand of a current GamePlayer in the game to see if they 
     # are able to play, or if they need to take the discard pile
-    def checkAndDisplayPlayerHand(self, p: Player) -> bool:
+    def checkAndDisplayGamePlayerHand(self, p: GamePlayer) -> bool:
         canPlay: bool = False
         
         # Print the correct type of hand we're playing
@@ -102,17 +110,17 @@ class Game(object):
         
         return canPlay
     
-    def tryPlayerPlay(self, p: Player, playInput: str) -> bool:
+    def tryGamePlayerPlay(self, p: GamePlayer, playInput: str) -> bool:
         # Parse the input
         indices: list[int] = [int(s) for s in re.findall(r'\d+', playInput)]
         
-        # When the player has an empty hand, force them to play one card at a time
+        # When the GamePlayer has an empty hand, force them to play one card at a time
         if not p.isPlayingFromHand() and len(indices) > 1:
             return False
         
-        # If the player is playing from their closed hand, and the play fails, they need to take the pile =/
+        # If the GamePlayer is playing from their closed hand, and the play fails, they need to take the pile =/
         if p.isPlayingFromClosedHand() and not self.playCard(p, indices):
-            # Let the player pick up the discard pile
+            # Let the GamePlayer pick up the discard pile
             self.discardPile.takePile(p)
             
             return True
@@ -127,13 +135,13 @@ class Game(object):
         self.started = False
         
     def start(self) -> None:
-        cPlayerIdx: int = 0
+        cGamePlayerIdx: int = 0
 
-        if len(self.players) <= 1:
+        if len(self.gamePlayers) <= 1:
             return;
     
         self.started = True
-        self.shouldCyclePlayer = True
+        self.shouldCycleGamePlayer = True
 
         # Shuffle the deck
         self.drawPile.shuffle()
@@ -148,40 +156,40 @@ class Game(object):
 
         # Play the game
         while True:
-            self.shouldCyclePlayer = True
+            self.shouldCycleGamePlayer = True
 
             canPlay: bool = False
-            currentPlayer: Player = self.players[cPlayerIdx]
+            currentGamePlayer: GamePlayer = self.gamePlayers[cGamePlayerIdx]
 
-            print(f"\nPlayer: {currentPlayer.name} is playing (Open hand: {currentPlayer.getOpenHandFmt()})")
+            print(f"\nGamePlayer: {currentGamePlayer.name} is playing (Open hand: {currentGamePlayer.getOpenHandFmt()})")
             print(f"Cards left on the draw pile: {len(self.drawPile.cards)}")
             print(f"Top card on the pile: {self.discardPile.getTopCardFmt()} ({len(self.discardPile.cards)} Cards)")
             
-            # Check the player hand
-            canPlay = self.checkAndDisplayPlayerHand(currentPlayer)
+            # Check the GamePlayer hand
+            canPlay = self.checkAndDisplayGamePlayerHand(currentGamePlayer)
 
             if not canPlay:
-                self.discardPile.takePile(currentPlayer)
+                self.discardPile.takePile(currentGamePlayer)
             else:
                 while True:
                     try:
-                        play = input(f"Enter the index/indices of the card(s) you want to play (0 - {len(currentPlayer.getActivePlayingHand())-1}): ")
+                        play = input(f"Enter the index/indices of the card(s) you want to play (0 - {len(currentGamePlayer.getActivePlayingHand())-1}): ")
 
-                        if self.tryPlayerPlay(currentPlayer, play):
+                        if self.tryGamePlayerPlay(currentGamePlayer, play):
                             break
                         
                     except ValueError and IndexError:
                         print("Please supply a valid index!")
 
-                if currentPlayer.hasWon():
-                    print(f"{currentPlayer.name} has won! ayyy")
+                if currentGamePlayer.hasWon():
+                    print(f"{currentGamePlayer.name} has won! ayyy")
                     return self.end()
 
                 # Fill your hand back until there are 3 in your hand
-                while len(currentPlayer.hand) < 3 and self.drawPile.hasCards():
-                    self.drawPile.takeCard(currentPlayer)
+                while len(currentGamePlayer.hand) < 3 and self.drawPile.hasCards():
+                    self.drawPile.takeCard(currentGamePlayer)
             
-            if self.shouldCyclePlayer:
-                # Go next player
-                cPlayerIdx += 1
-                cPlayerIdx %= len(self.players)
+            if self.shouldCycleGamePlayer:
+                # Go next GamePlayer
+                cGamePlayerIdx += 1
+                cGamePlayerIdx %= len(self.gamePlayers)

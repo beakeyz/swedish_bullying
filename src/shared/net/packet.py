@@ -10,10 +10,8 @@ class NetPacketType(enum.Enum):
     # (Serverbound) Destroys the current lobby, if the sender is also the creator of the lobby
     # No parameters
     DESTROY_LOBBY = 1
-    # (Serverbound/Clientbound) Starts the current lobby, if the sender is also the creator of the lobby
-    # (Serverbound) Parameters: No parameters
-    # (Clientbound) Parameters:
-    #   0-5: Hand card 0-5 (2*6=12 bytes)
+    # (Serverbound) Starts the current lobby, if the sender is also the creator of the lobby
+    # Parameters: No parameters
     START_LOBBY = 2
     # (Serverbound) Restarts the current lobby, if the sender is also the creator of the lobby and
     # if the game has ended
@@ -29,6 +27,11 @@ class NetPacketType(enum.Enum):
     # 
     # (Clientbound) Parameters:
     #   0: Player ID (1 byte)
+    #   1: Lobby ID (2 bytes)
+    #   2: Playercount already in the lobby (1 byte)
+    #   3 -> X: Players already in the lobby (? bytes)
+    #    - 0: Name string terminated by a null byte
+    #    - 1: Player ID (1 byte)
     JOIN_LOBBY = 4
     # (Clientbound) Notifies the client that a certain player has joined the lobby
     # Parameters:
@@ -82,6 +85,11 @@ class NetPacketType(enum.Enum):
     #   0: Next player ID (1 byte)
     #   1 -> X: Card X (2 bytes)
     TAKE_CARDS = 12
+    # (Clientbound) Notifies clients that the game has started
+    # Parameters:
+    #   0-5: Hand card 0-5 (2*6=12 bytes)
+    NOTIFY_START_GAME = 13
+    NOTIFY_END_GAME = 14
     
     # (Serverbound) Sent by the client if it had to reject a packet from the server.
     # Server should simply resend in most cases
@@ -132,7 +140,9 @@ class NetPacket(object):
         return (
             self.type == NetPacketType.NOTIFY_JOIN_LOBBY or
             self.type == NetPacketType.NOTIFY_LEAVE_LOBBY or
-            self.type == NetPacketType.NOTIFY_PLAY_CARD
+            self.type == NetPacketType.NOTIFY_PLAY_CARD or
+            self.type == NetPacketType.NOTIFY_START_GAME or
+            self.type == NetPacketType.NOTIFY_END_GAME
         )
             
     def fromPacket(self, netPacket):

@@ -1,13 +1,21 @@
-from ..shared.game import Card
+from .card import Card
 
-class Player(object):
+from ..net.netif import NetworkInterface
+
+class GamePlayer(object):
     name: str
+    netif: NetworkInterface
+    playerId: int
+    lobbyId: int
     hand: list[Card]
     closed: list[Card]
     open: list[Card]
 
-    def __init__(self, name) -> None:
+    def __init__(self, name, netif, playerId, lobbyId) -> None:
         self.name = name
+        self.netif = netif
+        self.playerId = playerId
+        self.lobbyId = lobbyId
         self.hand = []
         self.closed = []
         self.open = []

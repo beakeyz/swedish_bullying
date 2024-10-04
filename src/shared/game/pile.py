@@ -1,7 +1,7 @@
 import random
 
-from ..shared.game.card import Card
-from .player import Player
+from .card import Card
+from .player import GamePlayer
 
 class Pile(object):
     cards: list[Card] = []
@@ -9,8 +9,8 @@ class Pile(object):
     def __init__(self, cards) -> None:
         self.cards = cards
 
-    # Lets a player take an entire pile of cards
-    def takePile(self, p: Player) -> None:
+    # Lets a GamePlayer take an entire pile of cards
+    def takePile(self, p: GamePlayer) -> None:
         print(f"{p.name} has to take the pile!")
         
         p.takeCards(self.cards)
@@ -20,15 +20,15 @@ class Pile(object):
         self.cards.extend(p.cards)
         p.cards.clear()
 
-    # Lets a player take the top card from a pile
-    def takeCard(self, p: Player) -> None:
+    # Lets a GamePlayer take the top card from a pile
+    def takeCard(self, p: GamePlayer) -> None:
         p.takeCard(self.cards.pop(0))
 
-    def takeClosedCard(self, p: Player) -> None:
+    def takeClosedCard(self, p: GamePlayer) -> None:
         p.takeClosedCard(self.cards.pop(0))
 
 
-    def takeOpenCard(self, p: Player) -> None:
+    def takeOpenCard(self, p: GamePlayer) -> None:
         p.takeOpenCard(self.cards.pop(0))
 
     def hasCards(self) -> bool:
@@ -105,7 +105,7 @@ class Pile(object):
         
     
     # Selects a few cards to play
-    def playCards(self, p: Player, indices: list[int]) -> bool:
+    def playCards(self, p: GamePlayer, indices: list[int]) -> bool:
         card_value: int
         ret: list[Card] = []
         cards: tuple[list[Card], int] = p.getPlayableCards()
@@ -143,7 +143,7 @@ class Pile(object):
                     # Add this boi to the cards-to-play-list
                     ret.append(card)
 
-                # Remove all these cards from the players hand when we know these cards are playable
+                # Remove all these cards from the GamePlayers hand when we know these cards are playable
                 for r in ret:
                     p.removeCard(r)
 

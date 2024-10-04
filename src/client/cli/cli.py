@@ -4,7 +4,8 @@ from ..net.network import NetworkClient
 
 from ...shared.net.packets import *
 
-from ..game import Game
+from ...shared.game.game import Game
+from ...shared.game.player import GamePlayer
 
 def __cli_help(input: str, argv: list[str], nc): 
     print("Available commands:")
@@ -15,6 +16,7 @@ def __cli_exit(input: str, argv: list[str], nc: NetworkClient):
     nc.disconnect(0)
 
 def __cli_join(input: str, argv: list[str], nc: NetworkClient):
+    game: Game = nc.game
     netResponse: JoinNetPacket = None
     lobbyId: int
     
@@ -42,6 +44,10 @@ def __cli_join(input: str, argv: list[str], nc: NetworkClient):
     if netResponse.playerId == JoinNetPacket.InvalidPlayerId():
         print("Failed to join that lobby =(")
         return
+    
+    game.SetLobbyId(lobbyId)
+    
+    
     
     print(f"Success! Player {argv[2]} joined with ID {netResponse.playerId}")
 
@@ -111,6 +117,9 @@ def CliPollNotify(nc: NetworkClient):
         print(f"Player to join: name={notifyPacket.playerName}, id={notifyPacket.playerId}")
         
         # TODO: Actually add the players to the game
+        game.addGamePlayer(GamePlayer(notifyPacket.playerName, None, notifyPacket.playerId, game.currentLobbyId))
+    elif notifyPacket.type == NetPacketType.NOTIFY_LEAVE_LOBBY:
+        pass
         
     print("> ", end='')
 
