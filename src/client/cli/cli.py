@@ -46,10 +46,14 @@ def __cli_join(input: str, argv: list[str], nc: NetworkClient):
         return
     
     game.SetLobbyId(lobbyId)
-    
-    
-    
+
     print(f"Success! Player {argv[2]} joined with ID {netResponse.playerId}")
+    print(f"{netResponse.nrGamePlayer} players already in this lobby!")
+    if netResponse.nrGamePlayer and netResponse.gamePlayers != None:
+        print(f"Players: ")
+        for p in netResponse.gamePlayers:
+            print(f" - Name: {p.name} Id: {p.playerId}")
+
 
 def __cli_leave(input: str, argv: list[str], nc: NetworkClient):
     nc.SendPacket(0, LeavePacket())

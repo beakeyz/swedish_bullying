@@ -112,10 +112,10 @@ class NetPacket(object):
     type: NetPacketType = NetPacketType.INVAL
     flags: int = 0
     version: int = 0
-    rawData: bytes = []
+    rawData: bytes | None
     
     # Creates a netpacket object based on Clientbound data
-    def __init__(self, type=NetPacketType.INVAL, flags=0, version=0, data: bytes=None) -> None:
+    def __init__(self, type=NetPacketType.INVAL, flags=0, version=0, data: bytes|None=None) -> None:
         
         self.type = type
         self.flags = flags
@@ -153,7 +153,7 @@ class NetPacket(object):
         
         return self
     
-    def unmarshal(self, data: bytes):
+    def unmarshal(self, data: bytes | None):
         '''
         Unpacks the data from a bytestream sent over TCP into the actual netpacket object
         '''
@@ -189,7 +189,7 @@ class NetPacket(object):
         
         Every concrete packet type class needs to implement this for themselves
         '''
-        pass
+        return 0
 
     def HandleClientBound(self) -> int:
         '''
@@ -197,7 +197,7 @@ class NetPacket(object):
         
         Every concrete packet type class needs to implement this for themselves
         '''
-        pass
+        return 0
 
     def Handle(self) -> int:
         '''
