@@ -108,11 +108,37 @@ NETPACKET_FLAG_CLIENTBOUND: int =     0x01
 # Does this NetPacket expect a response (No response will be seens as a network error)
 NETPACKET_FLAG_EXPECT_RESP: int =   0x02
 
+class NetPacketStream(bytes):
+    idx: int = 0
+        
+    def __init__(self, bytes=None) -> None:
+        self.idx = 0
+        
+    def reset(self) -> None:
+        self.idx = 0
+    
+    def consume(self) -> int | None:
+        ret: int
+        
+        print(f"NetPackeStream: consume ({self.idx}/{len(self)})")
+        
+        # Check if we still have bytes left to consume
+        if self.idx > len(self):
+            return None
+        
+        # Grab the byte
+        ret = self[self.idx]
+        
+        # Add one
+        self.idx += 1
+        
+        return ret
+
 class NetPacket(object):
     type: NetPacketType = NetPacketType.INVAL
     flags: int = 0
     version: int = 0
-    rawData: bytes | None
+    rawData: NetPacketStream = []
     
     # Creates a netpacket object based on Clientbound data
     def __init__(self, type=NetPacketType.INVAL, flags=0, version=0, data: bytes|None=None) -> None:
@@ -120,8 +146,11 @@ class NetPacket(object):
         self.type = type
         self.flags = flags
         self.version = version
+        
         # Store the raw data inside the packet
-        self.rawData = data
+        if data != None:
+            data = NetPacketStream(data)
+            self.rawData = data
 
         self.unmarshal(data)
                     
@@ -153,19 +182,21 @@ class NetPacket(object):
         
         return self
     
-    def unmarshal(self, data: bytes | None):
+    def unmarshal(self, data: NetPacketStream):
         '''
         Unpacks the data from a bytestream sent over TCP into the actual netpacket object
         '''
         if data == None or len(data) < 4:
             return
         
+        data.reset()
+        
          # Try to parse the things xD
         try:
             # Parse the default data from the first 4 bytes
-            self.type = NetPacketType(data[0])
-            self.flags = int(data[1])
-            self.version = int((data[2] << 8) | data[3])
+            self.type = NetPacketType(data.consume())
+            self.flags = int(data.consume())
+            self.version = int((data.consume() << 8) | data.consume())
         except ValueError:
             pass
     

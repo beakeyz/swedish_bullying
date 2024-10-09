@@ -6,3 +6,5 @@ from .restartpacket import *
 from .playpacket import *
 from .listlobbypacket import *
 from .listplayerspacket import *
+from .startpacket import *
+from .takepacket import *

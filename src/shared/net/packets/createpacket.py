@@ -19,7 +19,7 @@ class CreateLobbyPacket(NetPacket):
         
         return data
     
-    def unmarshal(self, data: bytes):
+    def unmarshal(self, data: NetPacketStream):
         if data == None:
             return
         
@@ -29,4 +29,4 @@ class CreateLobbyPacket(NetPacket):
         if len(data) != 6:
             return
         
-        self.lobbyId = (data[4] << 8) | data[5]
+        self.lobbyId = (data.consume() << 8) | data.consume()

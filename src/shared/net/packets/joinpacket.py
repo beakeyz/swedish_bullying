@@ -1,4 +1,4 @@
-from ..packet import NetPacket, NetPacketType, NETPACKET_FLAG_CLIENTBOUND, NETPACKET_FLAG_EXPECT_RESP
+from ..packet import *
 from ...game.player import *
 
 class JoinNetPacket(NetPacket):
@@ -27,7 +27,7 @@ class JoinNetPacket(NetPacket):
     def isValidPlayerId(self) -> bool:
         return self.playerId != None and self.playerId < 0xff
         
-    def unmarshal(self, data: bytes | None):
+    def unmarshal(self, data: NetPacketStream):
         if data == None:
             return
         
@@ -119,7 +119,7 @@ class NotifyJoinPacket(NetPacket):
         self.playerId = playerId
         
         
-    def unmarshal(self, data: bytes | None):
+    def unmarshal(self, data: NetPacketStream):
         if data == None:
             return
         
@@ -128,12 +128,12 @@ class NotifyJoinPacket(NetPacket):
         if len(data) < 5:
             return
         
-        self.playerId = data[4]
+        self.playerId = data.consume()
                 
         self.playerName = ""
         
         for i in range(len(data) - 5):
-            self.playerName += chr(data[5 + i])
+            self.playerName += chr(data.consume())
     
     def marshal(self) -> bytearray:
         # Let NetPacket do the default header

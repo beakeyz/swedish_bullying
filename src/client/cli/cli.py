@@ -90,7 +90,23 @@ def __cli_destroy(input: str, argv: list[str], nc: NetworkClient):
     pass
 
 def __cli_start(input: str, argv: list[str], nc: NetworkClient):
-    pass
+    # Send a start packet =D
+    packet: NetPacket = nc.SendPacketAndAwaitResponse(0, StartPacket())
+    
+    if packet == None:
+        print(f"Failed to start the lobby!")
+        return
+    
+    if packet.type != NetPacketType.START_LOBBY:
+        print(f"Recieved the wrong packet!")
+        return
+    
+    packet: StartPacket = StartPacket().fromPacket(packet)
+    
+    if packet.getStatus() == 0:
+        print("Succesfully started the lobby!")
+    else:
+        print(f"Failed to start lobby! Status={packet.getStatus()}")
 
 __cli_commands = {
     "help": [__cli_help, "Display this info"],

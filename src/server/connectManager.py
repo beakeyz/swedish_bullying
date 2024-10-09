@@ -70,6 +70,7 @@ class ConnectionManager(net.NetworkInterface):
     
     # Called when we recieve data from a certain connection
     def onDataRecieve(self, connId: int, data: bytes) -> None:
+        data = net.NetPacketStream(data)
         netPacket: net.packet.NetPacket = net.packet.NetPacket(data=data)
         
         # This would mean invalid packet =(

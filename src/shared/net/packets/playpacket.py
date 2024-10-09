@@ -1,5 +1,5 @@
 from ..packet import *
-from ...game import Card
+from ...game import Card, marshalCard
 
 class PlayPacket(NetPacket):
     cardIdx: Card
@@ -16,7 +16,7 @@ class PlayPacket(NetPacket):
         
         return data
     
-    def unmarshal(self, data: bytes):
+    def unmarshal(self, data: NetPacketStream):
         if data == None:
             return
         
@@ -44,14 +44,14 @@ class NotifyPlayPacket(NetPacket):
     def marshal(self) -> bytearray:
         data: bytearray = super().marshal()
         
-        data.append(int(self.card.type) & 0xff)
-        data.append(self.card.value & 0xff)
+        marshalCard(self.card, data)
+        
         data.append(self.playerId)
         data.append(self.nextPlayerId)
         
         return data
     
-    def unmarshal(self, data: bytes):
+    def unmarshal(self, data: NetPacketStream):
         if data == None:
             return
         
