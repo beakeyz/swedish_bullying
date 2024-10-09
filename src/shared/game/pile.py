@@ -27,12 +27,32 @@ class Pile(object):
     def takeClosedCard(self, p: GamePlayer) -> None:
         p.takeClosedCard(self.cards.pop(0))
 
-
     def takeOpenCard(self, p: GamePlayer) -> None:
         p.takeOpenCard(self.cards.pop(0))
 
     def hasCards(self) -> bool:
         return len(self.cards) > 0
+    
+    def tryTakeCards(self, count: int) -> list[Card]:
+        '''
+        Tries to take @count cards from a pile
+        
+        If there are less than @count cards on the pile, the pile is emptied
+        '''
+        l = []
+        
+        while count:
+            # No cards left
+            if not len(self.cards):
+                break;
+            
+            # Add the item to the list
+            l.append(self.cards.pop(0))
+            
+            # Decrement the count now that we toke one card
+            count -= 1
+            
+        return l
 
     def shuffle(self) -> None:
         new_list: list[Card] = []

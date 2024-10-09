@@ -91,6 +91,9 @@ class NetPacketType(enum.Enum):
     NOTIFY_START_GAME = 13
     NOTIFY_END_GAME = 14
     
+    NOTIFY_TAKE_CARDS = 15
+    
+    OK_PING = 254
     # (Serverbound) Sent by the client if it had to reject a packet from the server.
     # Server should simply resend in most cases
     PACKET_REJECTED = 255
@@ -117,13 +120,13 @@ class NetPacketStream(bytes):
     def reset(self) -> None:
         self.idx = 0
     
-    def consume(self) -> int | None:
+    def consume(self) -> (int | None):
         ret: int
         
-        print(f"NetPackeStream: consume ({self.idx}/{len(self)})")
+        # print(f"NetPackeStream: consume ({self.idx}/{len(self)})")
         
         # Check if we still have bytes left to consume
-        if self.idx > len(self):
+        if self.idx >= len(self):
             return None
         
         # Grab the byte
@@ -152,7 +155,7 @@ class NetPacket(object):
             data = NetPacketStream(data)
             self.rawData = data
 
-        self.unmarshal(data)
+            self.unmarshal(data)
                     
     def hasFlags(self, flags: int) -> bool:
         return (self.flags & flags) == flags
@@ -166,12 +169,21 @@ class NetPacket(object):
         return not self.hasFlags(NETPACKET_FLAG_CLIENTBOUND)
     
     def isNotifyPacket(self) -> bool:
+        '''
+        Here we specify which cards we consider 'notification packets'
+        
+        Notification packets are packets that the server can send to any client at any
+        time. The subsequent client should be polling for these notifications and handling
+        them ASAP
+        '''
         return (
             self.type == NetPacketType.NOTIFY_JOIN_LOBBY or
             self.type == NetPacketType.NOTIFY_LEAVE_LOBBY or
             self.type == NetPacketType.NOTIFY_PLAY_CARD or
             self.type == NetPacketType.NOTIFY_START_GAME or
-            self.type == NetPacketType.NOTIFY_END_GAME
+            self.type == NetPacketType.NOTIFY_END_GAME or
+            self.type == NetPacketType.NOTIFY_TAKE_CARDS or
+            self.type == NetPacketType.TAKE_CARDS
         )
             
     def fromPacket(self, netPacket):

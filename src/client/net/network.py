@@ -40,15 +40,17 @@ class NetworkProtocol(SOCKSv4):
         if netPacket.type == NetPacketType.INVAL:
             return
         
+         # Send an OK packet
+        self.netif.SendPacket(0, NetPacket(NetPacketType.OK_PING, 0, 0))
+    
         if netPacket.isNotifyPacket():
             self.netif.QueueNotifyPacket(netPacket)
         # Let the server know this packet was rejected if the response queue is blocked...
         elif self.netif.QueueResponsePacket(0, netPacket) < 0:
             self.netif.SendPacket(0, NetPacket(NetPacketType.PACKET_REJECTED, 0, 1))
-        
-    
+            
+       
     def write(self, data):
-        print("NetworkProtocol: write")
         return super().write(data)
 
 class NetworkClientFact(ClientFactory):

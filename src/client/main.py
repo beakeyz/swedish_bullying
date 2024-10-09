@@ -6,7 +6,7 @@ from twisted.protocols.socks import SOCKSv4
 
 from .net.network import NetworkClient
 from ..shared.net.packet import NetPacket, NetPacketType
-from ..shared.game import Game
+from ..shared.game.game import Game
 
 from .cli import cli
 

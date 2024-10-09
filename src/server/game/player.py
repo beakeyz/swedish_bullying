@@ -1,9 +1,11 @@
 from ...shared.net.packets import *
+from ...shared.game.player import GamePlayer
 
 class Player(object):
     name: str
     id: int
     connectionId: int
+    gamePlayer: GamePlayer
     
     def __init__(self, name, connectionId) -> None:
         self.name = name

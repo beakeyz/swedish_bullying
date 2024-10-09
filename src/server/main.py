@@ -2,24 +2,30 @@ from .srv import Server
 from .connectManager import ConnectionManager
 from .packets import PacketManager
 from .game.lobby import LobbyManager
-from .debug.log import EnableDebug
+from .debug.log import EnableDebug, OkLog
 
 # Execution starts here
 def main():
-    print("Server started!")
+    port = 8007
     
     # Enable/Disable debug messages
     EnableDebug()
         
     lm = LobbyManager()
     
+    OkLog("Initialised lobby manager!")
+    
     pm = PacketManager(lm)
+    
+    OkLog("Initialised packet manager!")
     
     # Create a connection manager for this server
     cm = ConnectionManager(pm)
     
+    OkLog(f"Server started at port={port}")
+    
     # Actually create the server
-    Server(8007, cm)
+    Server(port, cm)
     
     # Die
     pass

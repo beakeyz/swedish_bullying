@@ -1,5 +1,5 @@
 from ..packet import *
-from ...game.player import *
+from ...game.player import GamePlayer
 
 class JoinNetPacket(NetPacket):
     lobbyId: int | None
@@ -57,7 +57,7 @@ class JoinNetPacket(NetPacket):
                     # print(f"Adding player {playerName} with ID {data[index+1]} to the gameplayers list")
                     
                     # Add this gameplayer
-                    self.gamePlayers.append(GamePlayer(playerName, None, data[index+1], self.lobbyId))
+                    self.gamePlayers.append(GamePlayer(playerName, 0, None, data[index+1], self.lobbyId))
                     
                     index += 2
                     bytesLeft -= 2

@@ -9,10 +9,19 @@ from .packets import PacketManager
 class InternalServerConnection(object):
     connection: SOCKSv4
     connId: int
+    # Flag to mark if the connection is clear. This is a weird hack to solidify communication
+    # Between client and server. For every packet the server sends to the client, the client (should) respond(s)
+    # with a OK_PING packet. Only after the server recieves this, it can send the next packet
+    pipeClear: bool
+    # Queue to store any packets the server wants to send to a client, while it hasn't yet sent an
+    # OK_PING packet back
+    packetQueue: list
 
     def __init__(self, proto, id) -> None:
         self.connection = proto
         self.connId = id
+        self.pipeClear = True
+        self.packetQueue = []
         
     # Called when this connection is closed
     def destroy(self) -> None:
@@ -81,6 +90,20 @@ class ConnectionManager(net.NetworkInterface):
         DebugLog(f"Recieved data: {data}")
         DebugLog(f"Packet type: {netPacket.type}")
         
+        # Skip any OK packets we recieve
+        if netPacket.type == net.packet.NetPacketType.OK_PING:
+            self.connections[connId].pipeClear = True
+            
+            # Try to send any queued packets that have been waiting
+            try:
+                p = self.connections[connId].packetQueue.pop(0)
+                
+                # Send a queued packet
+                self.SendPacket(connId, p)
+            except:
+                pass
+            return
+        
         # Let the packet manager handle this packet
         self.packetManager.HandlePacket(connId, self, netPacket)
         
@@ -106,8 +129,17 @@ class ConnectionManager(net.NetworkInterface):
         return 0
     
     def SendPacket(self, connId: int, packet: net.packet.NetPacket) -> int:
+        
+        # If the connection isn't clear, queue the packet
+        if self.connections[connId].pipeClear == False:
+            self.connections[connId].packetQueue.append(packet)
+            return -1
+        
         # Marshal the packet into a datastream
         data: bytes = bytes(packet.marshal())
+        
+        # Mark the pipe as not clear
+        self.connections[connId].pipeClear = False
         
         # Beam the steam over the connection
         return self.SendData(connId, data)

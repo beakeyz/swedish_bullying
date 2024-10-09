@@ -1,18 +1,26 @@
 from ..packet import *
-from ...game import Card, marshalCard
+from ...game.card import Card, marshalCard, unmarshalCard
 
 class PlayPacket(NetPacket):
-    cardIdx: Card
+    cardIndices: list[int]
     
-    def __init__(self, cardIdx=None) -> None:
-        super().__init__(NetPacketType.PLAY_CARD, 0, 1, 0)
+    def __init__(self, cardIndices=None) -> None:
+        super().__init__(NetPacketType.PLAY_CARD, 0, 1)
         
-        self.cardIdx = cardIdx
+        self.cardIndices = cardIndices
         
     def marshal(self) -> bytearray:
         data: bytearray = super().marshal()
-        
-        data.append(self.cardIdx)
+
+        if not self.cardIndices or not len(self.cardIndices):
+            return data
+    
+        # Get the length in here
+        data.append(len(self.cardIndices))
+
+        # Append the indices (Max 255)
+        for c in self.cardIndices:
+            data.append(min(abs(c), 255))
         
         return data
     
@@ -20,34 +28,43 @@ class PlayPacket(NetPacket):
         if data == None:
             return
         
+        # Unmarshal the base packet
         super().unmarshal(data)
         
-        # Make sure the length is correct
-        if len(data) != 5:
+        # Initialize the list
+        self.cardIndices = []
+        
+        # Grab the number of cards
+        nrCards = data.consume()
+        
+        if not nrCards:
             return
         
-        # Initialize our card
-        self.cardIdx = data[4]
+        # Append all the indices
+        for i in range(nrCards):
+            self.cardIndices.append(data.consume())
         
 class NotifyPlayPacket(NetPacket):
-    card: Card
+    cards: list[Card]
     playerId: int
     nextPlayerId: int
     
-    def __init__(self, card=None, playeId=None, nextPlayerId=None) -> None:
-        super().__init__(NetPacketType.PLAY_CARD, NETPACKET_FLAG_CLIENTBOUND, 1, 0)
+    def __init__(self, cards=None, playeId=None, nextPlayerId=None) -> None:
+        super().__init__(NetPacketType.NOTIFY_PLAY_CARD, NETPACKET_FLAG_CLIENTBOUND, 1)
         
-        self.card = card
+        self.cards = cards
         self.playerId = playeId
         self.nextPlayerId = nextPlayerId
         
     def marshal(self) -> bytearray:
         data: bytearray = super().marshal()
-        
-        marshalCard(self.card, data)
-        
+                
         data.append(self.playerId)
         data.append(self.nextPlayerId)
+        data.append(len(self.cards))
+        
+        for c in self.cards:
+            marshalCard(c, data)
         
         return data
     
@@ -57,11 +74,20 @@ class NotifyPlayPacket(NetPacket):
         
         super().unmarshal(data)
         
-        # Make sure the length is correct
-        if len(data) != 8:
-            return
-        
         # Initialize our card
-        self.card = Card(data[5], data[4])
-        self.playerId = data[6]
-        self.nextPlayerId = data[7]
+        self.playerId = data.consume()
+        self.nextPlayerId = data.consume()
+        # Initialize the cards array
+        self.cards = []
+        
+        # Grab the number of cards played
+        nrCards = data.consume()
+        
+        if not nrCards:
+            return
+
+        assert nrCards <= 4, "Tried to unmarshal a NotifyPlayPacket with an invalid number of cards"
+        
+        # Append all cards to our list
+        for i in range(nrCards):
+            self.cards.append(unmarshalCard(data))

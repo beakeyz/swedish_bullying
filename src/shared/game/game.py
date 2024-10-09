@@ -4,18 +4,20 @@ from .card import Card, CardType
 from .player import GamePlayer
 from .pile import Pile
 
-from ..net.packets import *
+from ..net.packets import TakePacket, CreateLobbyPacket, JoinNetPacket
 
 class Game(object):
     discardPile: Pile
     drawPile: Pile
     boomPile: Pile
 
-    shouldCycleGamePlayer: bool
     started: bool
+    shouldKeepGamePlayer: bool
     gamePlayers: list[GamePlayer] = []
     
     currentLobbyId: int
+    ourPlayerId: int
+    currentPlayerId: int
 
     def __generateCards(self) -> Pile:
         cards: list[Card] = []
@@ -38,30 +40,81 @@ class Game(object):
         self.boomPile = Pile([])
         self.started = False
         self.currentLobbyId = CreateLobbyPacket.InvalidLobbyId()
+        self.currentPlayerId = JoinNetPacket.InvalidPlayerId()
         
     def SetLobbyId(self, lobbyId: int) -> int:
         self.currentLobbyId = lobbyId
+        
+    def SetCurrentPlayer(self, pId: int) -> None:
+        self.currentPlayerId = pId
 
     def addGamePlayer(self, p: GamePlayer) -> bool:
         if p in self.gamePlayers or self.started:
             return False
         
         self.gamePlayers.append(p)
+        
+    def GetPlayerById(self, pId: int, grabNext: bool=False) -> GamePlayer | None:
+        idx = 0
+        for p in self.gamePlayers:
+            if p.playerId == pId:
+                idx = ((idx + 1) % len(self.gamePlayers)) if grabNext else idx
+
+                # Grab the target player
+                return self.gamePlayers[idx]
+            
+            idx += 1
+            
+        return None
+    
+    def NextPlayer(self, replay: bool = False) -> GamePlayer | None:
+        self.shouldKeepGamePlayer = False
+        
+        if replay:
+            return self.GetPlayerById(self.currentPlayerId)
+        
+        # Grab the next fucker
+        next: GamePlayer = self.GetPlayerById(self.currentPlayerId, grabNext=True)
+        
+        print(f"({self.GetPlayerById(self.currentPlayerId).name}) -> ({next.name})")
+        
+        # Check if we didn't fuck ourselves
+        if next:
+            self.currentPlayerId = next.playerId
+            
+        return next
+    
+    def NotifyPlayerOfTurn(self, player: GamePlayer) -> None:
+        print(f"It's your turn! Select a card to play!")
+        print(f"Top card on the discard pile: {self.discardPile.getTopCardFmt()} ({len(self.discardPile.cards)} Cards)")
+        
+        if not self.checkAndDisplayGamePlayerHand(player):
+            print(f"Ay! It seems like you can't play... You'll have to take the discard pile")
 
     def dealCards(self) -> None:
-        for GamePlayer in self.gamePlayers:
+        '''
+        We're going to deal 3 closed cards and 6 open cards. All players then need to select three cards
+        to present as their open cards
+        '''
+        for gamePlayer in self.gamePlayers:
             # Let the GamePlayers take 3 open, 3 closed and 3 hand cards
             for i in range(3):
-                self.drawPile.takeClosedCard(GamePlayer)
-                self.drawPile.takeOpenCard(GamePlayer)
-                self.drawPile.takeCard(GamePlayer)
+                self.drawPile.takeClosedCard(gamePlayer)
+                
+            for i in range(6):
+                self.drawPile.takeCard(gamePlayer)
+                
+            print("Taking...")
+                
+            # Tell the client to take these cards
+            gamePlayer.SendPacket(TakePacket(True, 0xff, gamePlayer.hand))
 
     def doBoom(self) -> bool:
 
         # Move the discard pile to the boom pile
         self.boomPile.mergePiles(self.discardPile)
 
-        self.shouldCycleGamePlayer = False
+        self.shouldKeepGamePlayer = True
         return True
 
     def playCard(self, p: GamePlayer, indices: list[int]) -> bool:
@@ -83,37 +136,42 @@ class Game(object):
 
         return self.doBoom()
  
-    # Checks the hand of a current GamePlayer in the game to see if they 
-    # are able to play, or if they need to take the discard pile
-    def checkAndDisplayGamePlayerHand(self, p: GamePlayer) -> bool:
+    def checkGamePlayerHand(self, p: GamePlayer, display: bool) -> bool:
         canPlay: bool = False
         
         # Print the correct type of hand we're playing
-        print("Hand:" if p.isPlayingFromHand() else "Open hand: " if p.isPlayingFromOpenHand() else "Closed hand: ")
+        if display:
+            print("Hand:" if p.isPlayingFromHand() else "Open hand: " if p.isPlayingFromOpenHand() else "Closed hand: ")
 
         # Loop over all the cards in the active playing hand to check and display them
         for i in range(len(p.getActivePlayingHand())):
-            currentCard: Card = p.getActivePlayingHand()[i] if len(p.open) else None
+            currentCard: Card = p.getActivePlayingHand()[i] if not p.isPlayingFromClosedHand() else None
             
             if currentCard != None:
-                print(f" ({i}): {currentCard}")
+                if display:
+                    print(f" ({i}): {currentCard}")
 
                 if not canPlay:
                     canPlay = self.discardPile.canPlay(currentCard)
             else:
                 # Just assume we can play here xD
                 canPlay = True
-                print(f" ({i}) ???")
-               
-        # Epic newline 
-        print("")
+                
+                if display:
+                    print(f" ({i}) ???")
+              
+        if display: 
+            # Epic newline 
+            print("")
         
         return canPlay
+ 
+    # Checks the hand of a current GamePlayer in the game to see if they 
+    # are able to play, or if they need to take the discard pile
+    def checkAndDisplayGamePlayerHand(self, p: GamePlayer) -> bool:
+        return self.checkGamePlayerHand(p, True)
     
-    def tryGamePlayerPlay(self, p: GamePlayer, playInput: str) -> bool:
-        # Parse the input
-        indices: list[int] = [int(s) for s in re.findall(r'\d+', playInput)]
-        
+    def tryGamePlayerPlay(self, p: GamePlayer, indices: list[int]) -> bool:
         # When the GamePlayer has an empty hand, force them to play one card at a time
         if not p.isPlayingFromHand() and len(indices) > 1:
             return False
@@ -135,13 +193,11 @@ class Game(object):
         self.started = False
         
     def start(self) -> None:
-        cGamePlayerIdx: int = 0
-
         if len(self.gamePlayers) <= 1:
             return;
     
         self.started = True
-        self.shouldCycleGamePlayer = True
+        self.shouldKeepGamePlayer = False
 
         # Shuffle the deck
         self.drawPile.shuffle()
@@ -151,45 +207,9 @@ class Game(object):
 
         # Shuffle again to be sure
         self.drawPile.shuffle()
-        
-        self.boomPile.mergePiles(self.drawPile)
-
-        # Play the game
-        while True:
-            self.shouldCycleGamePlayer = True
-
-            canPlay: bool = False
-            currentGamePlayer: GamePlayer = self.gamePlayers[cGamePlayerIdx]
-
-            print(f"\nGamePlayer: {currentGamePlayer.name} is playing (Open hand: {currentGamePlayer.getOpenHandFmt()})")
-            print(f"Cards left on the draw pile: {len(self.drawPile.cards)}")
-            print(f"Top card on the pile: {self.discardPile.getTopCardFmt()} ({len(self.discardPile.cards)} Cards)")
-            
-            # Check the GamePlayer hand
-            canPlay = self.checkAndDisplayGamePlayerHand(currentGamePlayer)
-
-            if not canPlay:
-                self.discardPile.takePile(currentGamePlayer)
-            else:
-                while True:
-                    try:
-                        play = input(f"Enter the index/indices of the card(s) you want to play (0 - {len(currentGamePlayer.getActivePlayingHand())-1}): ")
-
-                        if self.tryGamePlayerPlay(currentGamePlayer, play):
-                            break
-                        
-                    except ValueError and IndexError:
-                        print("Please supply a valid index!")
-
-                if currentGamePlayer.hasWon():
-                    print(f"{currentGamePlayer.name} has won! ayyy")
-                    return self.end()
-
-                # Fill your hand back until there are 3 in your hand
-                while len(currentGamePlayer.hand) < 3 and self.drawPile.hasCards():
-                    self.drawPile.takeCard(currentGamePlayer)
-            
-            if self.shouldCycleGamePlayer:
-                # Go next GamePlayer
-                cGamePlayerIdx += 1
-                cGamePlayerIdx %= len(self.gamePlayers)
+                
+    def tick(self) -> None:
+        '''
+        One game tick
+        '''
+        pass
