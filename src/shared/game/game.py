@@ -107,7 +107,7 @@ class Game(object):
             print("Taking...")
                 
             # Tell the client to take these cards
-            gamePlayer.SendPacket(TakePacket(True, 0xff, gamePlayer.hand))
+            gamePlayer.SendPacket(TakePacket(0xff, gamePlayer.hand))
 
     def doBoom(self) -> bool:
 

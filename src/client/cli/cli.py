@@ -6,6 +6,7 @@ from ...shared.net.packets import *
 from ...shared.net.packet import *
 
 from ...shared.game.game import Game
+from ...shared.game.card import Card, CardType
 from ...shared.game.player import GamePlayer
 
 def __cli_help(input: str, argv: list[str], nc): 
@@ -146,12 +147,22 @@ def CliPollNotify(nc: NetworkClient):
         us: GamePlayer = game.GetPlayerById(game.ourPlayerId)
         
         # If we don't yet have any cards, these are our starting cards
-        if not len(us.hand):
+        if not len(us.hand) and not len(us.closed):
             print(f"Taking starting cards...")
             
             game.started = True
             
+            # Fill up our closed hand with bullshit
+            # Since the server is going to keep track of our closed
+            # cards and we're going to play indices anyway, there is no
+            # need to put anything meeaningful here
+            # 
+            # oinky sploinky punch H13 (vo') for the win
+            for i in range(3):
+                us.takeClosedCard(card=Card(15, CardType.SPADES))
+
             i = 0
+
             
             for card in takePacket.targetCards:
                 us.takeCard(card)
@@ -163,9 +174,10 @@ def CliPollNotify(nc: NetworkClient):
         else:
             print(f"You need to take {len(takePacket.targetCards)} card(s):")
             
-            for card in takePacket.targetCards:
-                us.takeCard(card)
-                print(f" - {str(card)}")
+            if len(takePacket.targetCards):
+                for card in takePacket.targetCards:
+                    us.takeCard(card)
+                    print(f" - {str(card)}")
                       
             # Only if there is a valid next player supplied
             if takePacket.nextPlayerId != JoinNetPacket.InvalidPlayerId():

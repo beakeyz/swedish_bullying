@@ -2,10 +2,11 @@ from ...game.card import Card, marshalCard, unmarshalCard
 from ..packet import NetPacket, NetPacketType, NetPacketStream,NETPACKET_FLAG_CLIENTBOUND
 
 class TakePacket(NetPacket):
-    targetCards: list[Card]
+    targetCards: list[Card] = []
     nextPlayerId: int
-    def __init__(self, clientbound=False, nextPlayerId=0xff, cards=None):
-        super().__init__(NetPacketType.TAKE_CARDS, NETPACKET_FLAG_CLIENTBOUND if clientbound else 0, 1, None)
+
+    def __init__(self, nextPlayerId=0xff, cards=[]):
+        super().__init__(NetPacketType.TAKE_CARDS, NETPACKET_FLAG_CLIENTBOUND, 1, None)
         
         self.targetCards = cards
         self.nextPlayerId = nextPlayerId
@@ -13,20 +14,11 @@ class TakePacket(NetPacket):
     def marshal(self) -> bytearray:
         data: bytearray = super().marshal()
         
-        if not self.targetCards:
-            return data
+        data.append(self.nextPlayerId)
+        data.append(len(self.targetCards))
         
-        if self.isClientBound():
-            data.append(self.nextPlayerId)
-            data.append(len(self.targetCards))
-            
-            for targetCard in self.targetCards:
-                marshalCard(targetCard, data)
-                
-        else:
-            if len(self.targetCards) == 1:
-                data.append(1)
-                data.append(self.targetCards[0])
+        for targetCard in self.targetCards:
+            marshalCard(targetCard, data)
         
         return data
     
@@ -37,8 +29,7 @@ class TakePacket(NetPacket):
         super().unmarshal(data)
         
         # We need to take one extra byte for the next player ID if this is a clientbound packet
-        if self.isClientBound():
-            self.nextPlayerId = data.consume()
+        self.nextPlayerId = data.consume()
 
         self.targetCards = []
         

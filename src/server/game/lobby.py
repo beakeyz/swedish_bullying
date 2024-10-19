@@ -109,7 +109,7 @@ class Lobby(object):
     def HandleIncommingPacket(self, connId: int, netif: NetworkInterface, netPacket: NetPacket) -> bool:
         game: Game = self.game
         npType = netPacket.type
-        playPacket: PlayPacket
+        playPacket: PlayPacket = None
         gamePlayer: GamePlayer = self.GetPlayerByConnId(connId).gamePlayer
         
         print(f"HandleIncommingPacket Lobby {self.lobbyId}")
@@ -149,12 +149,12 @@ class Lobby(object):
                     game.NextPlayer()
                     
                     # Send a packet to make them take the cards
-                    gamePlayer.SendPacket(TakePacket(True, game.currentPlayerId, pile))
+                    gamePlayer.SendPacket(TakePacket(game.currentPlayerId, pile))
                     
                     # Let them take the entire pile xDDDD
                     game.discardPile.takePile(gamePlayer)
                     
-                    
+                    # Notify the other players of this event
                     for gp in game.gamePlayers:
                         if gp.playerId == gamePlayer.playerId:
                             continue
@@ -178,7 +178,7 @@ class Lobby(object):
                     gamePlayer.takeCards(cards)
                     
                     # Tell the player it is taking some new cards
-                    gamePlayer.SendPacket(TakePacket(True, 0xff, cards))
+                    gamePlayer.SendPacket(TakePacket(0xff, cards))
 
                 # Maybe cycle to the next player                
                 game.NextPlayer(game.shouldKeepGamePlayer)
