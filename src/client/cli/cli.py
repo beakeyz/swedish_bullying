@@ -183,12 +183,13 @@ def CliPollNotify(nc: NetworkClient):
             if takePacket.nextPlayerId != JoinNetPacket.InvalidPlayerId():
                 nextPlayer: GamePlayer = game.GetPlayerById(takePacket.nextPlayerId)
                 
-                print(f"Next player is: {nextPlayer.name}")
-                
-                # If the packet indicates a next player, we had to take the pile, so let's clear it
-                game.discardPile.cards.clear()
+                if nextPlayer != None:
+                    print(f"Next player is: {nextPlayer.name}")
                     
-                game.SetCurrentPlayer(takePacket.nextPlayerId)
+                    # If the packet indicates a next player, we had to take the pile, so let's clear it
+                    game.discardPile.cards.clear()
+                        
+                    game.SetCurrentPlayer(takePacket.nextPlayerId)
                 
     elif notifyPacket.type == NetPacketType.NOTIFY_PLAY_CARD:
         playPacket: NotifyPlayPacket = NotifyPlayPacket().fromPacket(notifyPacket)
